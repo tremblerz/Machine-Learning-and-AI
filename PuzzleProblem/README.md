@@ -1,12 +1,5 @@
+Hello User!
 This is README file for puzzle problem solver
-
-For our case here are some results for 10K test cases---------->>>>
-
-Mean value for BFS 0.00012863
-Standard deviation is 0.00843937
-Mean value for DFS 0.00004491
-Standard deviation is 0.00416382
-
 
 This folder contains .....
  
@@ -15,7 +8,6 @@ This folder contains .....
 3.Test Case file with 20K test cases
 4.source code
 5.Executable code
-6.Standard Deviation and Mean generator
 
 
 
