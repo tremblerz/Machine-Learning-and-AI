@@ -1,0 +1,57 @@
+This is README file for puzzle problem solver
+
+For our case here are some results for 10K test cases---------->>>>
+
+Mean value for BFS 0.00012863
+Standard deviation is 0.00843937
+Mean value for DFS 0.00004491
+Standard deviation is 0.00416382
+
+
+This folder contains .....
+ 
+1.Test cases generator 
+2.Sample output for multiple test Cases in both DFS and BFS
+3.Test Case file with 20K test cases
+4.source code
+5.Executable code
+6.Standard Deviation and Mean generator
+
+
+
+In this programme you can provide two states of a puzzle and hence can find out whether there exists a path betwee given state or not.
+
+------------Usage ---------------
+
+Sample Input =>
+
+1.
+./a.out bfs
+1 2 3
+4 5 6
+7 8 0
+
+0 1 2
+3 4 5
+8 7 6
+
+2.
+./a.out dfs
+1 2 3
+4 5 6
+7 8 0
+
+0 1 2
+4 6 5
+8 7 3
+
+Sample Output =>
+1.
+Path found
+Time taken by DFS Algorithm = x.xxxxxx seconds
+
+2.
+Path Not found
+Time taken by BFS Algorithm = x.xxxxxx seconds
+
+-------------Usage Over---------------
