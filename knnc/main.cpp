@@ -110,7 +110,7 @@ int main(){
         original_class = input[j][FEATURES];
         if( result_class != original_class ){
           error[j][k] = 1;
-          cout<<"For k = "<<k<<" , Result class is "<< result_class <<" Original class is "<<original_class<<endl;
+          //cout<<"For k = "<<k<<" , Result class is "<< result_class <<" Original class is "<<original_class<<endl;
         }
         else
           error[j][k] = 0;
