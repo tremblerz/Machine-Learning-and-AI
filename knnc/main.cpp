@@ -84,9 +84,8 @@ void reset( int freq[] , int &m , Dist distance[] ){
 }
 
 int main(){
-//  int a,error[TOTAL_DATA][M],
-  int a,input[TOTAL_DATA][FEATURES + 1],min_index,result_class,original_class,partition_size = TOTAL_DATA/FOLDS,freq[10],m;
-//  float finalError[FOLDS][FEATURES+1];
+  int a,error[TOTAL_DATA][M],input[TOTAL_DATA][FEATURES + 1],min_index,result_class,original_class,partition_size = TOTAL_DATA/FOLDS,freq[10],m;
+  float finalError[FOLDS][FEATURES+1];
   Dist distance[TOTAL_DATA];
   reset(freq,m,distance);
 
@@ -110,17 +109,17 @@ int main(){
         result_class = std::distance( freq , max_element( freq , freq + 10 ) );
         original_class = input[j][FEATURES];
         if( result_class != original_class ){
-  //        error[j][k] = 1;
-//          cout<<"For k = "<<k<<" , Result class is "<< result_class <<" Original class is "<<original_class<<endl;
+          error[j][k] = 1;
+          cout<<"For k = "<<k<<" , Result class is "<< result_class <<" Original class is "<<original_class<<endl;
         }
-       // else
-        //  error[j][k] = 0;
+        else
+          error[j][k] = 0;
         //cin>>a;
       }
       reset(freq,m,distance);
     }
   }
-/*
+
   for( int i=0; i<FOLDS; i++ ){
     //int sum=0;
     for( int k=1; k<M; k++ ){
@@ -131,10 +130,10 @@ int main(){
       finalError[i][k]=(float)sum/(float)partition_size;
     }
   }
-*/
+
   float min=100000.0;
   int pos=-1;
-/*
+
 
   for( int k=1; k<M; k++ ){
     float sum=0;
@@ -152,7 +151,6 @@ int main(){
     }
   }
 
- */ 
   cout<<"Optimal k is "<<pos<<endl;
 
   
