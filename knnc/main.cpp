@@ -3,7 +3,7 @@
 #include<cstdlib>
 #include<algorithm>
 #include<bits/stdc++.h>
-#include <sys/resource.h>
+#include<sys/resource.h>
 
 
 #define TRAININGFILENAME "pp_tra.dat"
@@ -19,7 +19,7 @@ using namespace std;
 int input[TRAIN_DATA][FEATURES+1];
 
 struct Dist{
-  long int distance;
+  float distance;
   int index;
 };
 
@@ -96,12 +96,7 @@ void reset( int freq[] , int &m , Dist distance[] ){
 int main(){
 
 
-
-
-
-
-
-
+//---------------------------------------INCREASING STACK SIZE------------------------------------------------
 
 
         const rlim_t kStackSize = 24 * 1024 * 1024;   // min stack size = 16 MB
@@ -124,25 +119,16 @@ int main(){
 
 
 
-
-
-
-
-
-
-
-
-
-
   int x;
-  cout<<"Started program"<<endl;
+  cout<<"Started program"<<endl<<"Finding Optimal K from the TRAINING dataset"<<endl;
 
 //  int input[TRAIN_DATA][FEATURES+1];
 //  readData( TRAININGFILENAME , input );
+//--------------------------------------------------------INITIALIZATION--------------------------------------------------
   int test_input[TEST_DATA][FEATURES+1],a,error[TRAIN_DATA][M+1],min_index,result_class,original_class,partition_size = TRAIN_DATA/FOLDS,freq[10],m,pos=-1,final_k,test_error;
   float finalError[FOLDS][M+1],min=1000.0;
 
-  Dist distance[TRAIN_DATA];
+  Dist distance[TRAIN_DATA],weight[M+1];
   reset(freq,m,distance);
 
   readData( TRAININGFILENAME , input );
@@ -159,7 +145,7 @@ int main(){
   }
  // cin>>x;
 */
-
+//----------------------------------------------------------------FINDING ERROR-------------------------------------------
   for( int i=0; i<FOLDS; i++ ){
 //    cout<<"!!"<<endl;
 //    cout<<"Starting of cross validation is "<<i*partition_size<<" and ending of cross validation set is "<<(1+i)*partition_size<<endl;
@@ -218,12 +204,12 @@ int main(){
     }
   }
   final_k = pos;
-  cout<<"Optimal k is "<<final_k<<endl;
+  cout<<"Optimal k is "<<final_k<<endl<<"Running on TEST dataset"<<endl;
 
   test_error = 0;
 
   readData( TESTINGFILENAME , test_input );
-
+//--------------------------------------------CHECKING ERROR FOR TEST SET-------------------------------------------------
   for( int j=0; j<TEST_DATA; j++ ){
     for( int l=0; l<TRAIN_DATA; l++ ){
       distance[m].index=l;
@@ -238,12 +224,32 @@ int main(){
  //     cout<<"Result class is "<<result_class<<" and original class is "<<original_class<<endl;
       test_error++ ;
     }
-    else
+//    else
  //     cout<<"Pass"<<endl;
     reset(freq,m,distance);
   }
 
-  cout<<"Error is "<<((float)test_error/TEST_DATA)*100.0<<endl;
+  cout<<"Error is "<<((float)test_error/TEST_DATA)*100.0<<"%"<<endl;
 
+
+  test_error = 0;
+
+  for( int j=0; j<TEST_DATA; j++){
+    for ( int i=0; i<final_k; i++ ){
+      weight[i].index = distance[i].index;
+      weight[i].distance = (float)( distance[final_k-1].distance - distance[i].distance ) / (float)( distance[final_k-1].distance - distance[0].distance );
+    }
+
+    sort( weight , weight+final_k , compare );
+    result_class = weight[0].index;
+    original_class = test_input[j][FEATURES];
+    if ( result_class != original_class ){
+      test_error++;
+    }
+  }
+
+  cout<<"Error with modified KNNC is "<<((float)test_error/TEST_DATA)*100.0<<"%"<<endl;
+
+//  for( int i=0; i<final_k; i++ )
   return 0;
 }
