@@ -244,18 +244,28 @@ int main(){
       distance[i].distance = findDistance( test_input[j] , input[i] );
     }
     sort( distance , distance + TRAIN_DATA , compare );
+
     for ( int i=0; i<final_k; i++ ){
       weight[i].index = distance[i].index;
       weight[i].distance = (float)( distance[final_k-1].distance - distance[i].distance ) / (float)( distance[final_k-1].distance - distance[0].distance );
     }
+
     for( int i=0; i<final_k; i++ ){
-      freq[input[weight[i].index][FEATURES]] += weight[i].distance;
+      distance[i].index = weight[i].index;
+      distance[i].distance = weight[i].distance * distance[weight[i].index].distance;
     }
+    sort( distance , distance + final_k , compare );
+
+    for( int i=0; i<final_k; i++ ){
+      freq[input[distance[i].index][FEATURES]] ++;
+    }
+    
     result_class = std::distance( freq , max_element( freq , freq + 10 ) );
     original_class = test_input[j][FEATURES];
     if( result_class != original_class ){
       test_error++;
     }
+    
     reset( freq , m , distance );
   }
 
