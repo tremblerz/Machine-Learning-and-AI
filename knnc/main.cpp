@@ -3,7 +3,7 @@
 #include<cstdlib>
 #include<algorithm>
 #include<bits/stdc++.h>
-#include <sys/resource.h>
+#include<sys/resource.h>
 
 
 #define TRAININGFILENAME "pp_tra.dat"
@@ -17,9 +17,10 @@
 using namespace std;
 
 int input[TRAIN_DATA][FEATURES+1];
+int condensed[TRAIN_DATA][FEATURES+1];
 
 struct Dist{
-  long int distance;
+  float distance;
   int index;
 };
 
@@ -46,8 +47,6 @@ void readData( char *filename , int input[][FEATURES+1] ){
   while( true ){
     if ( EOF != fscanf( fp, "%d%c", &input[row][col], &c) ){
       if ( c == 13 ){
-//        cout<<"Row number = "<<row<<"and column is "<<col<<endl;
-//        cout<<col<<endl;
         row++;
         col=0;
       }
@@ -74,6 +73,11 @@ void randomizeData( int input[][FEATURES+1] , int limit ){
   }
 }
 
+void copy( int *ar1 , int *ar2 ){
+  for( int i=0; i<=FEATURES; i++ )
+    ar1[i] = ar2[i];
+}
+
 int calcDistance( int point1 , int point2 ){
   return ( point1 - point2 ) * ( point1 - point2 );
 }
@@ -93,18 +97,102 @@ void reset( int freq[] , int &m , Dist distance[] ){
     distance[i].index = distance[i].distance = 0;
 }
 
+int train( int partition_size , Dist distance[] , int input[][FEATURES+1] , int freq[] , int error[][M+1] , float finalError[][M+1] , int size){
+  int m=0,x=0;
+
+  for( int i=0; i<FOLDS; i++ ){
+    for( int j=i*partition_size; j<(1+i)*partition_size; j++ ){
+      for( int l=0; l<size; l++ ){
+        if( !( l>=i*partition_size && l<(1+i)*partition_size) ){
+          distance[m].index=l;
+          distance[m++].distance=findDistance(input[l],input[j]);
+        }
+      }
+      sort(distance , distance+m , compare);
+      for( int k=1; k<=M; k++ ){
+        freq[input[distance[k].index][FEATURES]]++;
+        int result_class = std::distance( freq , max_element( freq , freq + 10 ) );
+        int original_class = input[j][FEATURES];
+        if( result_class != original_class ){
+          error[j][k] = 1;
+        }
+        else
+          error[j][k] = 0;
+      }
+      reset(freq,m,distance);
+    }
+  }
+
+  for( int i=0; i<FOLDS; i++ ){
+    for( int k=1; k<=M; k++ ){
+      int sum=0;
+      for( int j=i*partition_size; j<(1+i)*partition_size; j++ ){
+        sum+=error[j][k];
+      }
+      finalError[i][k]=(float)sum/(float)partition_size;
+    }
+  }
+
+  int pos=-1;
+  float min=1000.0;
+  for( int k=1; k<=M; k++ ){
+    float sum=0;
+    for( int i=0; i<FOLDS; i++ ){
+      sum += finalError[i][k];
+    }
+    finalError[0][k] = (float)sum/(float)FOLDS;
+    if ( min > finalError[0][k] ){
+      min = finalError[0][k];
+      pos = k;
+    }
+  }
+  return pos;
+}
+
+int test( int test_input[][FEATURES + 1] , Dist distance[] , int input[][FEATURES+1] , int freq[] , int test_data_size , int final_k , int size){
+  int test_error = 0 , m = 0;
+  for( int j=0; j<test_data_size; j++ ){
+    for( int l=0; l<size; l++ ){
+      distance[m].index=l;
+      distance[m++].distance=findDistance(input[l],test_input[j]);
+    }
+    sort(distance , distance+m , compare);
+    for( int k=0; k<final_k; k++ )
+        freq[input[distance[k].index][FEATURES]]++;
+    int result_class = std::distance( freq , max_element( freq , freq + 10 ) );
+    int original_class = test_input[j][FEATURES];
+    if( result_class != original_class ){
+      test_error++ ;
+    }
+    reset(freq,m,distance);
+  }
+  return test_error;
+}
+
+bool insertionRequired( int condensed[][ FEATURES+1 ] , int example[] , Dist distance[] , int final_k , int freq[] ){
+    int m=0; 
+    for( int l=0; l<TRAIN_DATA; l++ ){
+      distance[m].index=l;
+      distance[m++].distance=findDistance( condensed[l] , example );
+    }
+    sort(distance , distance+m , compare);
+    for( int k=0; k<final_k; k++ )
+        freq[input[distance[k].index][FEATURES]]++;
+    int result_class = std::distance( freq , max_element( freq , freq + 10 ) );
+    int original_class = example[FEATURES];
+    if( result_class != original_class ){
+      return true;
+    }
+    return false;
+}
+
 int main(){
 
 
+//---------------------------------------INCREASING STACK SIZE------------------------------------------------
 
-
-
-
-
-
-
-
-        const rlim_t kStackSize = 24 * 1024 * 1024;   // min stack size = 16 MB
+/*
+        const rlim_t kStackSize = 48 * 1024 * 1024;   // min stack size = 16 MB
         struct rlimit rl;
         int result;
 
@@ -122,128 +210,82 @@ int main(){
                 }
         }
 
-
-
-
-
-
-
-
-
-
-
-
+*/
 
   int x;
-  cout<<"Started program"<<endl;
+  cout<<"Started program"<<endl<<"Finding Optimal K from the TRAINING dataset"<<endl;
 
-//  int input[TRAIN_DATA][FEATURES+1];
-//  readData( TRAININGFILENAME , input );
+
   int test_input[TEST_DATA][FEATURES+1],a,error[TRAIN_DATA][M+1],min_index,result_class,original_class,partition_size = TRAIN_DATA/FOLDS,freq[10],m,pos=-1,final_k,test_error;
   float finalError[FOLDS][M+1],min=1000.0;
 
-  Dist distance[TRAIN_DATA];
+  Dist distance[TRAIN_DATA],weight[M+1];
   reset(freq,m,distance);
 
   readData( TRAININGFILENAME , input );
   randomizeData( input , TRAIN_DATA );
-//  readData( TESTINGFILENAME , test_input );
-
-/*
-  for( int i=0; i<TEST_DATA; i++ ){
-    for( int j=0; j<FEATURES; j++ ){
-      cout<<test_input[i][j]<<" ";
-    }
-    cout<<test_input[i][FEATURES];
-    cout<<endl;
-  }
- // cin>>x;
-*/
-
-  for( int i=0; i<FOLDS; i++ ){
-//    cout<<"!!"<<endl;
-//    cout<<"Starting of cross validation is "<<i*partition_size<<" and ending of cross validation set is "<<(1+i)*partition_size<<endl;
-    for( int j=i*partition_size; j<(1+i)*partition_size; j++ ){
-//      cout<<"--"<<endl;
-      for( int l=0; l<TRAIN_DATA; l++ ){
-        if( !( l>=i*partition_size && l<(1+i)*partition_size) ){
-          distance[m].index=l;
-          distance[m++].distance=findDistance(input[l],input[j]);
-        }
-      }
-      sort(distance , distance+m , compare);
-      for( int k=1; k<=M; k++ ){
-        //cout<<"Expected class is "<<input[distance[k].index][FEATURES]<<endl;
-        freq[input[distance[k].index][FEATURES]]++;
-        result_class = std::distance( freq , max_element( freq , freq + 10 ) );
-        original_class = input[j][FEATURES];
-        if( result_class != original_class ){
-          error[j][k] = 1;
-//          cout<<"For k = "<<k<<" , Result class is "<< result_class <<" Original class is "<<original_class<<endl;
-        }
-        else
-          error[j][k] = 0;
-        //cin>>a;
-      }
-      reset(freq,m,distance);
-    }
-  }
-//  cout<<"Flag1"<<endl;
-  
-  for( int i=0; i<FOLDS; i++ ){
-    //int sum=0;
-    for( int k=1; k<=M; k++ ){
-      int sum=0;
-      for( int j=i*partition_size; j<(1+i)*partition_size; j++ )
-        sum+=error[j][k];
-//      cout<<sum<<endl;
-      finalError[i][k]=(float)sum/(float)partition_size;
-    }
-  }
 
 
-  for( int k=1; k<=M; k++ ){
-    float sum=0;
-    for( int i=0; i<FOLDS; i++ ){
-//      cout<<finalError[i][k]<<endl;
-      sum += finalError[i][k];
-    }
-//    cout<<sum<<endl;
-    finalError[0][k] = (float)sum/(float)FOLDS;
-//    cout<<finalError[0][k]<<endl;
-    if ( min > finalError[0][k] ){
-//      cout<<finalError[0][k]<<endl;
-      min = finalError[0][k];
-      pos = k;
-    }
-  }
-  final_k = pos;
-  cout<<"Optimal k is "<<final_k<<endl;
-
-  test_error = 0;
+  final_k = train( partition_size , distance , input , freq , error , finalError , TRAIN_DATA );
+  cout<<"Optimal k is "<<final_k<<endl<<"Running on TEST dataset"<<endl;
 
   readData( TESTINGFILENAME , test_input );
+  test_error = test( test_input , distance , input , freq , TEST_DATA , final_k , TRAIN_DATA);
 
-  for( int j=0; j<TEST_DATA; j++ ){
-    for( int l=0; l<TRAIN_DATA; l++ ){
-      distance[m].index=l;
-      distance[m++].distance=findDistance(input[l],test_input[j]);
+  cout<<"Error with simple KNNC is "<<((float)test_error/(float)TEST_DATA)*100.0<<"%"<<endl;
+
+
+  cout<<"Running modified KNNC now"<<endl;
+  test_error = 0;
+  for( int j=0; j<TEST_DATA; j++){
+
+    for( int i=0; i<TRAIN_DATA; i++ ){
+      distance[i].index = i;
+      distance[i].distance = findDistance( test_input[j] , input[i] );
     }
-    sort(distance , distance+m , compare);
-    for( int k=0; k<final_k; k++ )
-        freq[input[distance[k].index][FEATURES]]++;
+    sort( distance , distance + TRAIN_DATA , compare );
+    for ( int i=0; i<final_k; i++ ){
+      weight[i].index = distance[i].index;
+      weight[i].distance = (float)( distance[final_k-1].distance - distance[i].distance ) / (float)( distance[final_k-1].distance - distance[0].distance );
+    }
+    for( int i=0; i<final_k; i++ ){
+      freq[input[weight[i].index][FEATURES]] += weight[i].distance;
+    }
     result_class = std::distance( freq , max_element( freq , freq + 10 ) );
     original_class = test_input[j][FEATURES];
     if( result_class != original_class ){
- //     cout<<"Result class is "<<result_class<<" and original class is "<<original_class<<endl;
-      test_error++ ;
+      test_error++;
     }
-    else
- //     cout<<"Pass"<<endl;
-    reset(freq,m,distance);
+    reset( freq , m , distance );
   }
 
-  cout<<"Error is "<<((float)test_error/TEST_DATA)*100.0<<endl;
+  cout<<"Error with modified KNNC is "<<((float)test_error/TEST_DATA)*100.0<<"%"<<endl;
+
+
+
+
+  
+  int size = 1;
+  copy(condensed[size-1] , input[1]);
+
+  cout<<"Generating condensed set"<<endl;
+
+  for( int i=0; i<TRAIN_DATA; i++ ){
+    if( insertionRequired( condensed , input[i] , distance , final_k , freq ) == true ){
+      size++;
+      copy( condensed[size-1] , input[i] );
+    }
+  }
+
+  cout<<"Condensed set genreated , reduction in the data set is "<<((float)(TRAIN_DATA - size)/(float)(TRAIN_DATA)) * 100<<"%"<<endl;
+
+  partition_size = (size+1)/FOLDS;
+
+  final_k = train( partition_size , distance , condensed , freq , error , finalError , size );
+  cout<<"Optimal K for condensed training set is "<<final_k<<endl;
+
+  test_error = test( test_input , distance , condensed , freq ,  TEST_DATA , final_k , size );
+  cout<<"Error with condensed NNC is "<<((float)test_error/TEST_DATA)*100.0<<"%"<<endl;
 
   return 0;
 }
