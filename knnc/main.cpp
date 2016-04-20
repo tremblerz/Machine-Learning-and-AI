@@ -245,21 +245,31 @@ int main(){
     }
     sort( distance , distance + TRAIN_DATA , compare );
 
-    for ( int i=0; i<final_k; i++ ){
+    for ( int i=0; i<TRAIN_DATA; i++ ){
       weight[i].index = distance[i].index;
-      weight[i].distance = (float)( distance[final_k-1].distance - distance[i].distance ) / (float)( distance[final_k-1].distance - distance[0].distance );
+      if( distance[TRAIN_DATA-1].distance != distance[0].distance )
+        weight[i].distance = (float)( distance[TRAIN_DATA-1].distance - distance[i].distance ) / (float)( distance[TRAIN_DATA-1].distance - distance[0].distance );
+      else
+        weight[i].distance = 1;
+      cout<<"Test set's element is  "<<j<<" and weight is "<<weight[i].distance<<endl;
     }
-
+/*
     for( int i=0; i<final_k; i++ ){
       distance[i].index = weight[i].index;
       distance[i].distance = weight[i].distance * distance[weight[i].index].distance;
     }
     sort( distance , distance + final_k , compare );
-
-    for( int i=0; i<final_k; i++ ){
-      freq[input[distance[i].index][FEATURES]] ++;
-    }
+*/
+    //for( int i=0; i<final_k; i++ ){
+  //    freq[input[distance[i].index][FEATURES]] ++;
+      /*for( int i=0; i<TRAIN_DATA; i++ ){
+        freq[input[weight[i].index][FEATURES]] += weight[i].distance;
+      }*/
+    //}
     
+      for( int i=0; i<10; i++ ){
+        cout<<"Frequency of "<<i<<" is "<<freq[i]<<endl;
+      }
     result_class = std::distance( freq , max_element( freq , freq + 10 ) );
     original_class = test_input[j][FEATURES];
     if( result_class != original_class ){
@@ -291,9 +301,9 @@ int main(){
 
   partition_size = (size+1)/FOLDS;
 
-  //final_k = train( partition_size , distance , condensed , freq , error , finalError , size );
-  //cout<<"Optimal K for condensed training set is "<<final_k<<endl;
-  final_k = 1;
+  final_k = train( partition_size , distance , condensed , freq , error , finalError , size );
+  cout<<"Optimal K for condensed training set is "<<final_k<<endl;
+  //final_k = 1;
 
   test_error = test( test_input , distance , condensed , freq ,  TEST_DATA , final_k , size );
   cout<<"Error with condensed NNC is "<<((float)test_error/TEST_DATA)*100.0<<"%"<<endl;
