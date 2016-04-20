@@ -281,7 +281,7 @@ int main(){
   cout<<"Generating condensed set"<<endl;
 
   for( int i=0; i<TRAIN_DATA; i++ ){
-    if( insertionRequired( condensed , input[i] , distance , final_k , freq ) == true ){
+    if( insertionRequired( condensed , input[i] , distance , 1 , freq ) == true ){
       size++;
       copy( condensed[size-1] , input[i] );
     }
@@ -291,8 +291,9 @@ int main(){
 
   partition_size = (size+1)/FOLDS;
 
-  final_k = train( partition_size , distance , condensed , freq , error , finalError , size );
-  cout<<"Optimal K for condensed training set is "<<final_k<<endl;
+  //final_k = train( partition_size , distance , condensed , freq , error , finalError , size );
+  //cout<<"Optimal K for condensed training set is "<<final_k<<endl;
+  final_k = 1;
 
   test_error = test( test_input , distance , condensed , freq ,  TEST_DATA , final_k , size );
   cout<<"Error with condensed NNC is "<<((float)test_error/TEST_DATA)*100.0<<"%"<<endl;
