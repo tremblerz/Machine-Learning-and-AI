@@ -97,6 +97,14 @@ void reset( int freq[] , int &m , Dist distance[] ){
     distance[i].index = distance[i].distance = 0;
 }
 
+void reset( float freq1[] , int &m , Dist distance[] ){
+  for( int i=0; i<10; i++)
+    freq1[i]=0;
+  m=0;
+  for( int i=0; i<TRAIN_DATA; i++ )
+    distance[i].index = distance[i].distance = 0;
+}
+
 int train( int partition_size , Dist distance[] , int input[][FEATURES+1] , int freq[] , int error[][M+1] , float finalError[][M+1] , int size){
   int m=0,x=0;
 
@@ -217,7 +225,7 @@ int main(){
 
 
   int test_input[TEST_DATA][FEATURES+1],a,error[TRAIN_DATA][M+1],min_index,result_class,original_class,partition_size = TRAIN_DATA/FOLDS,freq[10],m,pos=-1,final_k,test_error;
-  float finalError[FOLDS][M+1],min=1000.0;
+  float finalError[FOLDS][M+1],min=1000.0,freq1[10];
 
   Dist distance[TRAIN_DATA],weight[M+1];
   reset(freq,m,distance);
@@ -237,6 +245,10 @@ int main(){
 
   cout<<"Running modified KNNC now"<<endl;
   test_error = 0;
+
+  for( int i=0; i<10; i++ )
+    freq1[i]=0;
+
   for( int j=0; j<TEST_DATA; j++){
 
     for( int i=0; i<TRAIN_DATA; i++ ){
@@ -244,19 +256,50 @@ int main(){
       distance[i].distance = findDistance( test_input[j] , input[i] );
     }
     sort( distance , distance + TRAIN_DATA , compare );
+
     for ( int i=0; i<final_k; i++ ){
       weight[i].index = distance[i].index;
-      weight[i].distance = (float)( distance[final_k-1].distance - distance[i].distance ) / (float)( distance[final_k-1].distance - distance[0].distance );
+      if( distance[final_k-1].distance != distance[0].distance )
+        weight[i].distance = (float)( distance[final_k-1].distance - distance[i].distance ) / (float)( distance[final_k-1].distance - distance[0].distance );
+      else
+        weight[i].distance = 1;
+//      cout<<"Test set's element is  "<<j<<" and weight is "<<weight[i].distance<<"and class is "<<input[weight[i].index][FEATURES]<<endl;
     }
+/*
     for( int i=0; i<final_k; i++ ){
-      freq[input[weight[i].index][FEATURES]] += weight[i].distance;
+      distance[i].index = weight[i].index;
+      distance[i].distance = weight[i].distance * distance[weight[i].index].distance;
     }
-    result_class = std::distance( freq , max_element( freq , freq + 10 ) );
+    sort( distance , distance + final_k , compare );
+*/
+    //for( int i=0; i<final_k; i++ ){
+  //    freq[input[distance[i].index][FEATURES]] ++;
+      for( int i=0; i<final_k; i++ ){
+        freq1[input[weight[i].index][FEATURES]] += weight[i].distance;
+        //cout<<"weight is "<<freq1[input[weight[i].index][FEATURES]]<<endl;
+      }
+    //}
+    
+      /*for( int i=0; i<10; i++ ){
+        cout<<"votes for "<<i<<" is "<<freq1[i]<<endl;
+      }*/
+//    result_class = std::distance( freq1 , max_element( freq1 , freq1 + 10 ) );
+    float max = 0.0;
+    int pos=-1;
+    for( int i=0; i<10; i++ ){
+      if( freq1[i] > max ){
+        max=freq1[i];
+        pos=i;
+      }
+    }
+    result_class = pos;
     original_class = test_input[j][FEATURES];
     if( result_class != original_class ){
       test_error++;
+      //cout<<"result class is "<<result_class<<" and "<<original_class<<endl;
     }
-    reset( freq , m , distance );
+    //cin>>x;    
+    reset( freq1 , m , distance );
   }
 
   cout<<"Error with modified KNNC is "<<((float)test_error/TEST_DATA)*100.0<<"%"<<endl;
@@ -271,7 +314,7 @@ int main(){
   cout<<"Generating condensed set"<<endl;
 
   for( int i=0; i<TRAIN_DATA; i++ ){
-    if( insertionRequired( condensed , input[i] , distance , final_k , freq ) == true ){
+    if( insertionRequired( condensed , input[i] , distance , 1 , freq ) == true ){
       size++;
       copy( condensed[size-1] , input[i] );
     }
@@ -283,6 +326,7 @@ int main(){
 
   final_k = train( partition_size , distance , condensed , freq , error , finalError , size );
   cout<<"Optimal K for condensed training set is "<<final_k<<endl;
+  //final_k = 1;
 
   test_error = test( test_input , distance , condensed , freq ,  TEST_DATA , final_k , size );
   cout<<"Error with condensed NNC is "<<((float)test_error/TEST_DATA)*100.0<<"%"<<endl;
